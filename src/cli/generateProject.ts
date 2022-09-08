@@ -9,6 +9,7 @@ import {
   FreshmintMetadataViewsGenerator,
   CommonNFTGenerator,
   ClaimSaleGenerator,
+  NFTQueueGenerator
 } from '../lib';
 import { ContractConfig, ContractType } from './config';
 
@@ -32,6 +33,8 @@ export async function generateProjectCadence(dir: string, contract: ContractConf
     FungibleToken: `"./FungibleToken.cdc"`,
     FlowToken: `"./FlowToken.cdc"`,
     NFTLockBox: `"./NFTLockBox.cdc"`,
+    NFTClaimSale: `"./NFTClaimSale.cdc"`,
+    NFTQueue: `"./NFTQueue.cdc"`
   };
 
   switch (contract.type) {
@@ -45,6 +48,7 @@ export async function generateProjectCadence(dir: string, contract: ContractConf
 
   await writeFile(path.resolve(dir, `cadence/contracts/NFTLockBox.cdc`), NFTLockBoxGenerator.contract({ imports }));
   await writeFile(path.resolve(dir, `cadence/contracts/NFTClaimSale.cdc`), ClaimSaleGenerator.contract({ imports }));
+  await writeFile(path.resolve(dir, `cadence/contracts/NFTQueue.cdc`), NFTQueueGenerator.contract({ imports }));
 
   await writeFile(
     path.resolve(dir, `cadence/contracts/FreshmintMetadataViews.cdc`),
@@ -75,6 +79,8 @@ async function generateStandardProject(
     // Find a better solution.
     NonFungibleToken: `"../contracts/NonFungibleToken.cdc"`,
     NFTLockBox: `"../contracts/NFTLockBox.cdc"`,
+    NFTClaimSale: `"../contracts/NFTClaimSale.cdc"`,
+    NFTQueue: `"../contracts/NFTQueue.cdc"`,
     MetadataViews: `"../contracts/MetadataViews.cdc"`,
     FreshmintMetadataViews: `"../contracts/FreshmintMetadataViews.cdc"`,
   };
@@ -96,6 +102,14 @@ async function generateStandardProject(
   });
 
   await writeFile(path.resolve(dir, 'cadence/transactions/mint_with_claim_key.cdc'), mintWithClaimKeyTransaction);
+
+  const startSaleTransaction = ClaimSaleGenerator.startSale({
+    imports: adjustedImports,
+    contractName: config.contract.name,
+    contractAddress,
+  });
+
+  await writeFile(path.resolve(dir, 'cadence/transactions/start_sale.cdc'), startSaleTransaction);
 
   if (includeCSVFile) {
     await createNFTsCSVFile(dir, contract.name, { fields: contract.schema.fields });

@@ -1,5 +1,6 @@
 import NonFungibleToken from {{{ imports.NonFungibleToken }}}
 import FungibleToken from {{{ imports.FungibleToken }}}
+import NFTQueue from {{{ imports.NFTQueue }}}
 
 pub contract NFTClaimSale {
 
@@ -58,27 +59,35 @@ pub contract NFTClaimSale {
     pub resource Sale: SalePublic {
 
         access(self) let nftType: Type
-        access(self) let collection: Capability<&{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>
+        access(self) let queue: Capability<&{NFTQueue.Provider}>
         access(self) let paymentReceiver: Capability<&{FungibleToken.Receiver}>
 
         pub let id: String
         pub let price: UFix64
         pub let size: Int
 
+        init(
+            id: String,
+            nftType: Type,
+            queue: Capability<&{NFTQueue.Provider}>,
+            paymentReceiver: Capability<&{FungibleToken.Receiver}>,
+            paymentPrice: UFix64
+        ) {
+            self.id = id
+            self.nftType = nftType
+            self.queue = queue
+            self.paymentReceiver = paymentReceiver
+            self.price = paymentPrice
+            self.size = queue.borrow()!.length()
+        }
+
         pub fun supply(): Int {
-            return self.collection.borrow()!.getIDs().length
+            let queue = self.queue.borrow()!
+            return queue.length()
         }
 
         pub fun isActive(): Bool {
             return self.supply() != 0
-        }
-
-        access(self) fun pop(): @NonFungibleToken.NFT {
-            let collection = self.collection.borrow()!
-            let ids = collection.getIDs()
-            let nextID = ids[0]
-
-            return <- collection.withdraw(withdrawID: nextID)
         }
 
         pub fun claim(payment: @FungibleToken.Vault): @NonFungibleToken.NFT {
@@ -86,9 +95,9 @@ pub contract NFTClaimSale {
                 payment.balance == self.price: "payment vault does not contain requested price"
             }
 
-            let collection = self.collection.borrow()!
+            let queue = self.queue.borrow()!
 
-            if collection.getIDs().length == 0 {
+            if queue.length() == 0 {
                 panic("Sale is sold out")
             }
 
@@ -96,26 +105,11 @@ pub contract NFTClaimSale {
 
             receiver.deposit(from: <- payment)
 
-            let nft <- self.pop()
+            let nft <- queue.pop()
 
             emit Claimed(nftType: self.nftType, nftID: nft.id)
 
             return <- nft
-        }
-
-        init(
-            id: String,
-            nftType: Type,
-            collection: Capability<&{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>, 
-            paymentReceiver: Capability<&{FungibleToken.Receiver}>,
-            paymentPrice: UFix64
-        ) {
-            self.id = id
-            self.nftType = nftType
-            self.collection = collection
-            self.paymentReceiver = paymentReceiver
-            self.price = paymentPrice
-            self.size = collection.borrow()!.getIDs().length
         }
     }
 
@@ -126,14 +120,14 @@ pub contract NFTClaimSale {
     pub fun createSale(
         id: String,
         nftType: Type,
-        collection: Capability<&{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>, 
+        queue: Capability<&{NFTQueue.Provider}>,
         paymentReceiver: Capability<&{FungibleToken.Receiver}>,
         paymentPrice: UFix64
     ): @Sale {
         return <- create Sale(
             id: id,
             nftType: nftType,
-            collection: collection,
+            queue: queue,
             paymentReceiver: paymentReceiver,
             paymentPrice: paymentPrice
         )

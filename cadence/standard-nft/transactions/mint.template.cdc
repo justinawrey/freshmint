@@ -1,4 +1,5 @@
 import NonFungibleToken from {{{ imports.NonFungibleToken }}}
+import NFTQueue from {{{ imports.NFTQueue }}}
 import {{ contractName }} from {{{ contractAddress }}}
 
 transaction(
@@ -8,16 +9,17 @@ transaction(
 ) {
     
     let admin: &{{ contractName }}.Admin
-    let receiver: &{NonFungibleToken.CollectionPublic}
+    let queue: &{NFTQueue.Receiver}
 
     prepare(signer: AuthAccount) {
-        self.admin = signer.borrow<&{{ contractName }}.Admin>(from: {{ contractName }}.AdminStoragePath)
+        self.admin = signer
+            .borrow<&{{ contractName }}.Admin>(from: {{ contractName }}.AdminStoragePath)
             ?? panic("Could not borrow a reference to the NFT admin")
         
-        self.receiver = signer
-            .getCapability({{ contractName }}.CollectionPublicPath)!
-            .borrow<&{NonFungibleToken.CollectionPublic}>()
-            ?? panic("Could not get receiver reference to the NFT Collection")
+        self.queue = signer
+            .getCapability({{ contractName }}.QueuePublicPath)!
+            .borrow<&{NFTQueue.Receiver}>()
+            ?? panic("Could not get receiver reference to the NFT queue")
     }
 
     execute {
@@ -31,7 +33,7 @@ transaction(
                 {{/each}}
             )
         
-            self.receiver.deposit(token: <- token)
+            self.queue.push(token: <- token)
 
             i = i +1
         }

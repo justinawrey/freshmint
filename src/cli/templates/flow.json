@@ -44,6 +44,8 @@
         "testnet": "0x3c67d33388b03a69"
       }
     },
+    "NFTQueue": "cadence/contracts/NFTQueue.cdc",
+    "NFTClaimSale": "cadence/contracts/NFTClaimSale.cdc",
     "{{name}}": "cadence/contracts/{{name}}.cdc"
   },
   "networks": {
@@ -63,6 +65,8 @@
         "NonFungibleToken",
         "MetadataViews",
         "NFTLockBox",
+        "NFTQueue",
+        "NFTClaimSale",
         "{{name}}"
       ]
     }

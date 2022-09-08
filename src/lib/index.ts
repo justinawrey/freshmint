@@ -20,6 +20,7 @@ export { ClaimSaleContract } from './contracts/ClaimSaleContract';
 export { ClaimSaleGenerator } from './generators/ClaimSaleGenerator';
 
 export { NFTLockBoxGenerator } from './generators/NFTLockBoxGenerator';
+export { NFTQueueGenerator } from './generators/NFTQueueGenerator';
 export { CommonNFTGenerator } from './generators/CommonNFTGenerator';
 export { FreshmintMetadataViewsGenerator } from './generators/FreshmintMetadataViewsGenerator';
 

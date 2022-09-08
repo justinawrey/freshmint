@@ -1,6 +1,7 @@
 import {{ contractName }} from {{{ contractAddress }}}
 
 import NFTClaimSale from {{{ imports.NFTClaimSale }}}
+import NFTQueue from {{{ imports.NFTQueue }}}
 import FungibleToken from {{{ imports.FungibleToken }}}
 import NonFungibleToken from {{{ imports.NonFungibleToken }}}
 
@@ -22,7 +23,7 @@ pub fun getOrCreateSaleCollection(account: AuthAccount): &NFTClaimSale.SaleColle
 transaction(saleID: String, price: UFix64, collectionName: String?) {
 
     let sales: &NFTClaimSale.SaleCollection
-    let nfts: Capability<&{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>
+    let queue: Capability<&{NFTQueue.Provider}>
     let paymentReceiver: Capability<&{FungibleToken.Receiver}>
 
     prepare(signer: AuthAccount) {
@@ -31,8 +32,8 @@ transaction(saleID: String, price: UFix64, collectionName: String?) {
 
         let nftCollectionPrivatePath = {{ contractName }}.getPrivatePath(suffix: collectionName ?? "Collection")
 
-        self.nfts = signer
-            .getCapability<&{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>(nftCollectionPrivatePath)
+        self.queue = signer
+            .getCapability<&{NFTQueue.Provider}>({{ contractName }}.QueuePrivatePath)
 
         self.paymentReceiver = signer
             .getCapability<&{FungibleToken.Receiver}>(/public/flowTokenReceiver)!
@@ -42,7 +43,7 @@ transaction(saleID: String, price: UFix64, collectionName: String?) {
         let sale <- NFTClaimSale.createSale(
             id: saleID,
             nftType: Type<@{{ contractName }}.NFT>(),
-            collection: self.nfts,
+            queue: self.queue,
             paymentReceiver: self.paymentReceiver,
             paymentPrice: price,
         )

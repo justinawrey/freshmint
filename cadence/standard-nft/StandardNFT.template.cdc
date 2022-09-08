@@ -1,6 +1,7 @@
 import NonFungibleToken from {{{ imports.NonFungibleToken }}}
 import MetadataViews from {{{ imports.MetadataViews }}}
 import FungibleToken from {{{ imports.FungibleToken }}}
+import NFTQueue from {{{ imports.NFTQueue }}}
 
 pub contract {{ contractName }}: NonFungibleToken {
 
@@ -19,6 +20,11 @@ pub contract {{ contractName }}: NonFungibleToken {
     pub let CollectionStoragePath: StoragePath
     pub let CollectionPublicPath: PublicPath
     pub let CollectionPrivatePath: PrivatePath
+
+    pub let QueueStoragePath: StoragePath
+    pub let QueuePublicPath: PublicPath
+    pub let QueuePrivatePath: PrivatePath
+
     pub let AdminStoragePath: StoragePath
 
     // totalSupply
@@ -226,16 +232,21 @@ pub contract {{ contractName }}: NonFungibleToken {
     }
 
     priv fun initAdmin(admin: AuthAccount) {
-        // Create an empty collection and save it to storage
         let collection <- {{ contractName }}.createEmptyCollection()
 
         admin.save(<- collection, to: {{ contractName }}.CollectionStoragePath)
 
-        admin.link<&{{ contractName }}.Collection>({{ contractName }}.CollectionPrivatePath, target: {{ contractName }}.CollectionStoragePath)
+        let collectionCapability = admin.link<&{{ contractName }}.Collection>({{ contractName }}.CollectionPrivatePath, target: {{ contractName }}.CollectionStoragePath)
 
         admin.link<&{{ contractName }}.Collection{NonFungibleToken.CollectionPublic, {{ contractName }}.{{ contractName }}CollectionPublic, MetadataViews.ResolverCollection}>({{ contractName }}.CollectionPublicPath, target: {{ contractName }}.CollectionStoragePath)
         
-        // Create an admin resource and save it to storage
+        let queue <- NFTQueue.createEmptyQueue(collectionCapability!)
+
+        admin.save(<- queue, to: self.QueueStoragePath)
+        
+        admin.link<&{NFTQueue.Receiver}>(self.QueuePublicPath, target: self.QueueStoragePath)
+        admin.link<&NFTQueue.Queue>(self.QueuePrivatePath, target: self.QueueStoragePath)
+
         let adminResource <- create Admin()
 
         admin.save(<- adminResource, to: self.AdminStoragePath)
@@ -248,6 +259,10 @@ pub contract {{ contractName }}: NonFungibleToken {
         self.CollectionPublicPath = {{ contractName }}.getPublicPath(suffix: "Collection")
         self.CollectionStoragePath = {{ contractName }}.getStoragePath(suffix: "Collection")
         self.CollectionPrivatePath = {{ contractName }}.getPrivatePath(suffix: "Collection")
+
+        self.QueuePublicPath = {{ contractName }}.getPublicPath(suffix: "Queue")
+        self.QueueStoragePath = {{ contractName }}.getStoragePath(suffix: "Queue")
+        self.QueuePrivatePath = {{ contractName }}.getPrivatePath(suffix: "Queue")
 
         self.AdminStoragePath = {{ contractName }}.getStoragePath(suffix: "Admin")
 
